@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Hub ⚡</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Segoe UI',sans-serif;
+}
+
+body{
+  height:100vh;
+  background: linear-gradient(270deg,#ff6ec4,#7873f5,#42e695,#f093fb);
+  background-size:800% 800%;
+  animation: gradientBG 12s ease infinite;
+  color:white;
+  display:flex;
+  flex-direction:column;
+}
+
+@keyframes gradientBG{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+
+/* HEADER */
+header{
+  text-align:center;
+  padding:20px;
+  font-size:28px;
+  font-weight:bold;
+  letter-spacing:1px;
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* MAIN GRID */
+.container{
+  flex:1;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+  padding:30px;
+}
+
+/* CARD */
+.card{
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(15px);
+  border-radius:20px;
+  padding:30px;
+  text-align:center;
+  cursor:pointer;
+  transition:0.4s;
+  position:relative;
+  overflow:hidden;
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  width:0;
+  height:0;
+  top:50%;
+  left:50%;
+  background: rgba(255,255,255,0.2);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  transition:0.5s;
+}
+
+.card:hover::before{
+  width:400px;
+  height:400px;
+}
+
+.card:hover{
+  transform: translateY(-10px) scale(1.03);
+  box-shadow:0 10px 40px rgba(0,0,0,0.3);
+}
+
+.card h2{
+  margin-bottom:10px;
+  font-size:22px;
+}
+
+.card p{
+  font-size:14px;
+  opacity:0.9;
+}
+
+/* BUTTON */
+.btn{
+  margin-top:15px;
+  display:inline-block;
+  padding:10px 18px;
+  border-radius:30px;
+  background:white;
+  color:black;
+  font-weight:bold;
+  transition:0.3s;
+}
+
+.card:hover .btn{
+  background:black;
+  color:white;
+}
+
+/* FOOTER */
+footer{
+  text-align:center;
+  padding:15px;
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+  font-size:14px;
+  letter-spacing:1px;
+}
+
+/* CLICK RIPPLE */
+.ripple{
+  position:absolute;
+  border-radius:50%;
+  transform:scale(0);
+  animation:rippleAnim 0.6s linear;
+  background:rgba(255,255,255,0.5);
+}
+
+@keyframes rippleAnim{
+  to{
+    transform:scale(4);
+    opacity:0;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+⚡ Thunder Technology Tools Hub ⚡
+</header>
+
+<div class="container">
+
+  <div class="card" onclick="openTool(event,'https://wondermayank.github.io/PDftotext/allinone')">
+    <h2>📄 Text → PDF (All-in-One)</h2>
+    <p>Convert text into PDF with multiple tools in one place.</p>
+    <div class="btn">Open Tool</div>
+  </div>
+
+  <div class="card" onclick="openTool(event,'https://wondermayank.github.io/PDftotext/mcqs')">
+    <h2>🧠 Text → MCQs</h2>
+    <p>Generate MCQs instantly from text or content.</p>
+    <div class="btn">Open Tool</div>
+  </div>
+
+  <div class="card" onclick="openTool(event,'https://wondermayank.github.io/PDftotext/qa')">
+    <h2>📝 Question Paper Generator</h2>
+    <p>Create question papers automatically from text.</p>
+    <div class="btn">Open Tool</div>
+  </div>
+
+</div>
+
+<footer>
+© Thunder Technology Official ⚡ | @thundertechnologyoffcial
+</footer>
+
+<script>
+
+function openTool(e, url){
+  // Ripple effect
+  const ripple = document.createElement("span");
+  ripple.classList.add("ripple");
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  ripple.style.left = (e.clientX - rect.left) + "px";
+  ripple.style.top = (e.clientY - rect.top) + "px";
+
+  e.currentTarget.appendChild(ripple);
+
+  setTimeout(()=>{ ripple.remove(); },600);
+
+  // Open link
+  setTimeout(()=>{
+    window.open(url, "_blank");
+  },200);
+}
+
+</script>
+
+</body>
+</html>
