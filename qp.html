@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Advanced PDF Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      text-align: center;
+      color: white;
+      padding: 20px;
+    }
+
+    textarea {
+      width: 85%;
+      height: 250px;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+    }
+
+    input {
+      padding: 8px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: yellow;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: orange;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>📄 Smart Question Paper PDF Generator</h1>
+
+  <input type="text" id="title" placeholder="Enter Paper Title"><br><br>
+
+  <label>
+    <input type="checkbox" id="frontPage"> Add Front Page
+  </label><br><br>
+
+  <textarea id="inputText" placeholder="Use * for questions and # for headings"></textarea><br>
+
+  <button onclick="generatePDF()">Download PDF</button>
+
+<script>
+async function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let text = document.getElementById("inputText").value;
+  let title = document.getElementById("title").value;
+  let addFrontPage = document.getElementById("frontPage").checked;
+
+  let y = 20;
+  let page = 1;
+
+  function footer() {
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+
+    doc.text("By @thunderstudy_official", 10, 290);
+    doc.text("Page " + page, 180, 290);
+
+    page++;
+  }
+
+  // 🎨 FRONT PAGE
+  if (addFrontPage) {
+    doc.setFillColor(79, 172, 254);
+    doc.rect(0, 0, 210, 297, "F");
+
+    doc.setTextColor(255);
+    doc.setFontSize(28);
+    doc.text(title || "Test Paper", 105, 140, { align: "center" });
+
+    doc.setFontSize(16);
+    doc.text("Generated PDF", 105, 160, { align: "center" });
+
+    footer();
+    doc.addPage();
+    y = 20;
+  }
+
+  // Split lines
+  let lines = text.split("\n");
+
+  lines.forEach(line => {
+
+    if (y > 270) {
+      footer();
+      doc.addPage();
+      y = 20;
+    }
+
+    // 🔵 Headings (#)
+    if (line.startsWith("#")) {
+      doc.setFontSize(16);
+      doc.setTextColor(0, 102, 204);
+      doc.setFont(undefined, "bold");
+
+      line = line.replace(/#/g, "");
+      doc.text(line, 10, y);
+      y += 10;
+    }
+
+    // 🔴 Questions (*)
+    else if (line.startsWith("*")) {
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      doc.setFont(undefined, "bold");
+
+      line = line.replace(/\*/g, "");
+      let split = doc.splitTextToSize(line, 180);
+      doc.text(split, 10, y);
+      y += split.length * 7;
+    }
+
+    // ⚫ Normal text
+    else {
+      doc.setFontSize(11);
+      doc.setFont(undefined, "normal");
+
+      let split = doc.splitTextToSize(line, 180);
+      doc.text(split, 10, y);
+      y += split.length * 6;
+    }
+
+  });
+
+  footer();
+
+  doc.save("QuestionPaper.pdf");
+}
+</script>
+
+</body>
+</html>
