@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MCQ → PDF | By Wondermayank</title>
+<title>MCQ → PDF | ThunderStudy</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -295,7 +295,7 @@
 <header>
   <a class="logo" href="#">
     <div class="logo-icon">⚡</div>
-    MCQS CONVERTER BY WONDERMAYANK
+    ThunderStudy
   </a>
   <span class="badge">MCQ → PDF</span>
 </header>
@@ -368,7 +368,8 @@
         <span style="color:#2563eb;">①</span> <strong>Bold+Letter</strong> — <code>**1. Q**</code> · (A)(B)(C)(D) · <code>**Answer: (A) text**</code><br>
         <span style="color:#2563eb;">②</span> <strong>Standard</strong> — <code>Q1. Q</code> · a) b) c) d) · <code>*Answer:* **b) text**</code><br>
         <span style="color:#2563eb;">③</span> <strong>Numeric</strong> — <code>**1. Q**</code> · (1)(2)(3)(4) · <code>**Answer: (1) text**</code><br>
-        <span style="color:#2563eb;">④</span> <strong>Section headings</strong> — <code>### Title</code> or <code>### **Title**</code> → shown as dividers
+        <span style="color:#2563eb;">④</span> <strong>Correct Answer</strong> — <code>**Correct Answer: (d)**</code><br>
+        <span style="color:#2563eb;">⑤</span> <strong>Section headings</strong> — <code>### Title</code> or <code>### **Title**</code> → shown as dividers
       </div>
 
       <textarea id="mcqInput" style="margin-top:10px;" placeholder="Paste your MCQs here..."></textarea>
@@ -668,9 +669,16 @@ function parseNumericOption(t) {
 }
 
 function parseAnswerLine(t) {
+  // Strip surrounding markdown bold/italic markers
   const clean = t.replace(/^\*{1,2}/, '').replace(/\*{1,2}$/, '').trim();
-  if (!/^Ans/i.test(clean)) return null;
-  const rest = clean.replace(/^Ans(?:wer)?\s*[:\-]?\s*/i, '').replace(/^\*{1,2}/, '').trim();
+  // Must start with "Ans", "Answer", or "Correct Answer"
+  if (!/^(Correct\s+)?Ans/i.test(clean)) return null;
+  // Strip the prefix: "Correct Answer:", "Answer:", "Ans:", etc.
+  const rest = clean
+    .replace(/^Correct\s+Ans(?:wer)?\s*[:\-]?\s*/i, '')
+    .replace(/^Ans(?:wer)?\s*[:\-]?\s*/i, '')
+    .replace(/^\*{1,2}/, '')
+    .trim();
   const numM = rest.match(/^\(?([1-4])\)?[\.\)]?\s*(.*)/);
   if (numM) return { letter: NUM_TO_LETTER[numM[1]], extra: stripMD(numM[2] || '') };
   const letM = rest.match(/^\(?([A-Da-d])\)?[\.\)]?\s*(.*)/);
@@ -683,7 +691,7 @@ function isQuestionStart(t) {
   if (/^\*{1,2}\s*\d+[\.\)]\s/.test(t)) return true;
   if (/^\d+[\.\)]\s+\S/.test(t) &&
       !/^\d+[\.\)]\s*[\(\*]?[A-Da-d1-4][\.\)\s]/.test(t) &&
-      !/^\*{0,2}Ans/i.test(t) &&
+      !/^\*{0,2}(Correct\s+)?Ans/i.test(t) &&
       !/^\([1-4]\)/.test(t)) return true;
   return false;
 }
