@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDF Maker — By Wondermayank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  /* ── DESIGN TOKENS ── */
+  :root {
+    --primary: #2563EB;
+    --primary-light: #3B82F6;
+    --primary-pale: #DBEAFE;
+    --accent: #06B6D4;
+    --accent-light: #CFFAFE;
+    --sky: #E0F2FE;
+    --sky-mid: #BAE6FD;
+    --white: #FFFFFF;
+    --bg: #F0F9FF;
+    --glass: rgba(255,255,255,0.6);
+    --glass-border: rgba(255,255,255,0.80);
+    --glass-shadow: 0 8px 32px rgba(37,99,235,0.10);
+    --text-main: #0F172A;
+    --text-sub: #475569;
+    --text-light: #94A3B8;
+    --radius: 20px;
+    --radius-sm: 12px;
+    /* Spacing scale (8dp base) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    /* Animation (150–300ms per ui-ux-pro-max) */
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --duration-slow: 300ms;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; font-size: 16px; } /* min 16px per skill */
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6; /* 1.5–1.75 per skill */
+  }
+
+  /* ── SKIP LINK (a11y: keyboard users) ── */
+  .skip-link {
+    position: absolute; top: -100%; left: var(--space-4);
+    background: var(--primary); color: white;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-weight: 600; font-size: 0.875rem;
+    z-index: 10000; text-decoration: none;
+    transition: top var(--duration-fast) ease;
+  }
+  .skip-link:focus { top: var(--space-4); }
+
+  /* ── BOOT SCREEN ── */
+  #boot-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #0EA5E9 0%, #2563EB 50%, #06B6D4 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  #boot-screen.exit {
+    opacity: 0; transform: scale(1.05); pointer-events: none;
+  }
+  .boot-logo { display: flex; flex-direction: column; align-items: center; gap: var(--space-5); }
+  .boot-icon {
+    width: 90px; height: 90px;
+    background: rgba(255,255,255,0.18);
+    border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    animation: bootIconPop 0.6s var(--ease-bounce) 0.3s both;
+    backdrop-filter: blur(10px);
+  }
+  .boot-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700; color: white;
+    letter-spacing: -0.5px;
+    animation: bootTextUp 0.6s var(--ease-out) 0.5s both;
+    text-align: center;
+  }
+  .boot-sub {
+    font-size: 0.95rem; color: rgba(255,255,255,0.75);
+    animation: bootTextUp 0.6s var(--ease-out) 0.7s both;
+    letter-spacing: 0.5px;
+  }
+  .boot-bar-wrap {
+    width: 200px; height: 4px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 99px; margin-top: var(--space-8);
+    overflow: hidden;
+    animation: bootTextUp 0.4s ease 0.9s both;
+  }
+  .boot-bar {
+    height: 100%; width: 0%; background: white;
+    border-radius: 99px;
+    animation: bootBarFill 1.4s ease 1s forwards;
+  }
+  @keyframes bootIconPop { from{opacity:0;transform:scale(0.4) rotate(-10deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+  @keyframes bootTextUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes bootBarFill { from{width:0%} to{width:100%} }
+
+  /* ── BACKGROUND BLOBS ── */
+  .bg-blob {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; z-index: 0;
+  }
+  .blob1 { width: 500px; height: 500px; background: rgba(56,189,248,0.18); top: -100px; right: -100px; animation: blobFloat 8s ease-in-out infinite; }
+  .blob2 { width: 400px; height: 400px; background: rgba(37,99,235,0.10); bottom: 10%; left: -80px; animation: blobFloat 10s ease-in-out infinite reverse; }
+  .blob3 { width: 300px; height: 300px; background: rgba(6,182,212,0.12); top: 40%; right: 20%; animation: blobFloat 12s ease-in-out infinite 2s; }
+  @keyframes blobFloat { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px);
+    background: rgba(255,255,255,0.75);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0 var(--space-8);
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 20px rgba(37,99,235,0.07);
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: var(--space-3);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 1.1rem;
+    color: var(--primary); text-decoration: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+    /* Focus ring (a11y) */
+    outline: none;
+    transition: box-shadow var(--duration-fast) ease;
+  }
+  .nav-brand:focus-visible {
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.4);
+  }
+  .nav-brand-icon {
+    width: 36px; height: 36px; min-width: 36px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-badge {
+    font-size: 0.7rem; font-weight: 600;
+    background: var(--primary-pale); color: var(--primary);
+    padding: 2px var(--space-3); border-radius: 99px;
+    letter-spacing: 0.5px;
+  }
+  .nav-right { display: flex; align-items: center; gap: var(--space-4); }
+  .nav-count { font-size: 0.82rem; color: var(--text-sub); font-weight: 500; }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 80px var(--space-6) 60px;
+    max-width: 760px; margin: 0 auto;
+  }
+  .hero-chip {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: var(--primary-pale); color: var(--primary);
+    font-size: 0.8rem; font-weight: 600;
+    padding: 6px var(--space-4); border-radius: 99px;
+    margin-bottom: var(--space-6);
+    border: 1px solid rgba(37,99,235,0.2);
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
+  .hero-chip-dot {
+    width: 6px; height: 6px; background: var(--primary);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2.2rem, 6vw, 3.8rem);
+    font-weight: 800; line-height: 1.1;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+  .hero p {
+    margin-top: var(--space-4);
+    font-size: 1.05rem; color: var(--text-sub);
+    font-weight: 400; line-height: 1.65;
+    max-width: 56ch; margin-inline: auto;
+    animation: fadeUp 0.6s ease 0.4s both;
+  }
+  .hero-stats {
+    display: flex; align-items: center; justify-content: center;
+    gap: var(--space-8); margin-top: var(--space-10);
+    animation: fadeUp 0.6s ease 0.5s both;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-size: 1.6rem; font-weight: 800; color: var(--primary); font-family: 'Space Grotesk', sans-serif; line-height: 1; }
+  .stat-label { font-size: 0.78rem; color: var(--text-light); font-weight: 500; margin-top: var(--space-1); }
+  .stat-divider { width: 1px; height: 40px; background: var(--sky-mid); }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 var(--space-6) var(--space-5);
+  }
+  .section-label h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.05rem; font-weight: 600;
+    color: var(--primary); letter-spacing: 0.3px;
+    display: flex; align-items: center; gap: var(--space-3);
+  }
+  .section-label h2::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--sky-mid), transparent);
+  }
+  .section-label h2 svg { flex-shrink: 0; }
+
+  /* ── GRID ── */
+  .tools-grid {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 var(--space-6) 80px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-5);
+  }
+
+  /* ── TOOL CARD ── */
+  .tool-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 28px var(--space-6);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--glass-shadow);
+    cursor: pointer;
+    text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; gap: 14px;
+    position: relative; overflow: hidden;
+    transform-style: preserve-3d;
+    /* Optimised: only transform + opacity (per skill) */
+    transition: transform var(--duration-slow) var(--ease-bounce),
+                box-shadow var(--duration-slow) ease,
+                opacity var(--duration-base) ease;
+    opacity: 0;
+    transform: translateY(40px);
+    /* Touch-action for faster tap */
+    touch-action: manipulation;
+    /* Focus ring (a11y) */
+    outline: none;
+    min-height: 44px; /* touch target min */
+  }
+  .tool-card:focus-visible {
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.5), var(--glass-shadow);
+  }
+  .tool-card.visible {
+    animation: cardReveal 0.55s var(--ease-bounce) forwards;
+  }
+  @keyframes cardReveal {
+    from { opacity: 0; transform: translateY(36px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .tool-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 60%);
+    border-radius: inherit; pointer-events: none;
+  }
+  .tool-card:hover,
+  .tool-card:focus-visible,
+  .tool-card:focus-within {
+    box-shadow: 0 24px 60px rgba(37,99,235,0.18), 0 0 0 1px rgba(37,99,235,0.12);
+    transform: translateY(-8px) scale(1.01);
+  }
+
+  /* Top accent shine */
+  .card-top-shine {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(to right, var(--primary), var(--accent));
+    border-radius: var(--radius) var(--radius) 0 0;
+    transform: scaleX(0); transform-origin: left;
+    transition: transform var(--duration-slow) var(--ease-out);
+    pointer-events: none;
+  }
+  .tool-card:hover .card-top-shine,
+  .tool-card:focus-within .card-top-shine { transform: scaleX(1); }
+
+  /* Icon — SVG only (no-emoji-icons per skill) */
+  .tool-icon {
+    width: 52px; height: 52px; min-width: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform var(--duration-slow) var(--ease-bounce);
+  }
+  .tool-icon svg { display: block; }
+  .tool-card:hover .tool-icon { transform: scale(1.14) rotate(-3deg); }
+
+  .tool-card-body { flex: 1; min-width: 0; }
+  .tool-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem; font-weight: 700; color: var(--text-main);
+    line-height: 1.3;
+  }
+  .tool-desc {
+    font-size: 0.83rem; color: var(--text-sub);
+    margin-top: 6px; line-height: 1.55;
+  }
+  .tool-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.72rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 99px;
+    margin-top: var(--space-3);
+  }
+
+  /* Arrow CTA */
+  .tool-arrow {
+    position: absolute; bottom: var(--space-5); right: var(--space-5);
+    width: 36px; height: 36px;
+    background: var(--primary-pale);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transform: translate(8px, 8px) scale(0.8);
+    transition: opacity var(--duration-base) ease,
+                transform var(--duration-base) var(--ease-bounce);
+    pointer-events: none;
+  }
+  .tool-card:hover .tool-arrow,
+  .tool-card:focus-within .tool-arrow {
+    opacity: 1; transform: translate(0,0) scale(1);
+  }
+
+  /* ── FEATURED CARD ── */
+  .card-featured {
+    /* Sit in its own single-column grid wrapper — no grid-column needed */
+    flex-direction: row; align-items: flex-start; gap: var(--space-8);
+    background: linear-gradient(135deg, rgba(37,99,235,0.07) 0%, rgba(255,255,255,0.62) 100%);
+    border-color: rgba(37,99,235,0.18);
+    padding: 36px var(--space-8);
+    /* Prevent internal content from breaking out */
+    width: 100%;
+    min-height: unset;
+  }
+  .card-featured .tool-icon { width: 72px; height: 72px; min-width: 72px; border-radius: 20px; }
+  .card-featured .tool-name { font-size: 1.3rem; }
+  .card-featured .tool-desc { font-size: 0.9rem; }
+  .featured-sub-links {
+    display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4);
+  }
+  .sub-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 600;
+    padding: 6px 14px; border-radius: 99px;
+    border: 1.5px solid; text-decoration: none;
+    transition: transform var(--duration-base) ease,
+                box-shadow var(--duration-base) ease;
+    backdrop-filter: blur(8px);
+    min-height: 36px;
+    outline: none;
+    white-space: nowrap;
+  }
+  .sub-link:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.15); }
+  .sub-link:focus-visible { box-shadow: 0 0 0 3px rgba(37,99,235,0.4); }
+
+  /* Wrapper so featured card spans full width without being inside the multi-col grid */
+  .featured-wrapper {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 var(--space-6);
+    display: flex; flex-direction: column;
+  }
+
+  /* ── COLOUR THEMES (icon backgrounds) ── */
+  .theme-blue   { background: linear-gradient(135deg,#DBEAFE,#EFF6FF); }
+  .theme-cyan   { background: linear-gradient(135deg,#CFFAFE,#ECFEFF); }
+  .theme-purple { background: linear-gradient(135deg,#EDE9FE,#F5F3FF); }
+  .theme-green  { background: linear-gradient(135deg,#DCFCE7,#F0FDF4); }
+  .theme-amber  { background: linear-gradient(135deg,#FEF9C3,#FFFBEB); }
+  .theme-rose   { background: linear-gradient(135deg,#FFE4E6,#FFF1F2); }
+  .theme-sky    { background: linear-gradient(135deg,#E0F2FE,#F0F9FF); }
+  .theme-indigo { background: linear-gradient(135deg,#E0E7FF,#EEF2FF); }
+
+  .tag-blue   { background: #DBEAFE; color: #1D4ED8; }
+  .tag-cyan   { background: #CFFAFE; color: #0E7490; }
+  .tag-purple { background: #EDE9FE; color: #7C3AED; }
+  .tag-green  { background: #DCFCE7; color: #15803D; }
+  .tag-amber  { background: #FEF9C3; color: #A16207; }
+  .tag-rose   { background: #FFE4E6; color: #BE123C; }
+  .tag-sky    { background: #E0F2FE; color: #0369A1; }
+  .tag-indigo { background: #E0E7FF; color: #4338CA; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center; padding: var(--space-10) var(--space-6);
+    border-top: 1px solid var(--sky-mid);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(10px);
+  }
+  footer p { font-size: 0.85rem; color: var(--text-light); }
+  footer span { color: var(--primary); font-weight: 600; }
+
+  /* ── UTILITIES ── */
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+
+  /* Respect prefers-reduced-motion (per skill) */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .tool-card { opacity: 1; transform: none; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 0 var(--space-4); }
+    .hero { padding: 60px var(--space-4) var(--space-10); }
+    .hero-stats { gap: var(--space-4); }
+    .tools-grid { padding: 0 var(--space-4) 60px; gap: 14px; }
+    .card-featured { flex-direction: column; gap: var(--space-5); padding: var(--space-6); }
+    .card-featured .tool-icon { align-self: flex-start; }
+    .featured-wrapper { padding: 0 var(--space-4); }
+    .stat-divider { display: none; }
+    .nav-badge { display: none; }
+  }
+  @media (max-width: 480px) {
+    .hero h1 { letter-spacing: -0.5px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SKIP LINK (a11y) -->
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen" role="status" aria-label="Loading PDF Maker">
+  <div class="boot-logo">
+    <div class="boot-icon" aria-hidden="true">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="4" width="24" height="32" rx="4" fill="white" fill-opacity="0.9"/>
+        <rect x="14" y="12" width="12" height="2" rx="1" fill="#2563EB"/>
+        <rect x="14" y="17" width="12" height="2" rx="1" fill="#2563EB"/>
+        <rect x="14" y="22" width="8"  height="2" rx="1" fill="#2563EB"/>
+        <rect x="20" y="28" width="20" height="14" rx="4" fill="#06B6D4"/>
+        <path d="M28 33L32 37L40 30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="boot-title">PDF Maker</div>
+    <div class="boot-sub">By Wondermayank</div>
+    <div class="boot-bar-wrap" role="progressbar" aria-label="Loading…" aria-valuemin="0" aria-valuemax="100">
+      <div class="boot-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BG BLOBS (decorative) -->
+<div class="bg-blob blob1" aria-hidden="true"></div>
+<div class="bg-blob blob2" aria-hidden="true"></div>
+<div class="bg-blob blob3" aria-hidden="true"></div>
+
+<!-- NAVBAR -->
+<nav aria-label="Site navigation">
+  <a href="#" class="nav-brand" aria-label="PDF Maker home">
+    <div class="nav-brand-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="4" y="2" width="12" height="16" rx="2" fill="white" fill-opacity="0.9"/>
+        <rect x="7" y="6" width="6" height="1.5" rx="0.75" fill="#2563EB"/>
+        <rect x="7" y="9" width="6" height="1.5" rx="0.75" fill="#2563EB"/>
+        <rect x="7" y="12" width="4" height="1.5" rx="0.75" fill="#2563EB"/>
+        <rect x="10" y="14" width="10" height="7" rx="2" fill="#06B6D4"/>
+        <path d="M14 16.5L16 18.5L20 15" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    PDF Maker
+  </a>
+  <div class="nav-right">
+    <span class="nav-count" aria-label="12 tools available">12 Tools</span>
+    <span class="nav-badge" aria-hidden="true">✦ By Wondermayank</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-chip" aria-hidden="true">
+    <span class="hero-chip-dot"></span>
+    All-in-One PDF Toolkit
+  </div>
+  <h1 id="hero-heading">Create Anything.<br/>Export as PDF.</h1>
+  <p>From MCQ generators to certificate makers — every tool you need to turn content into beautiful, print-ready PDFs.</p>
+  <div class="hero-stats" aria-label="Key stats">
+    <div class="stat">
+      <div class="stat-num" aria-label="12 tools">12</div>
+      <div class="stat-label">Tools</div>
+    </div>
+    <div class="stat-divider" aria-hidden="true"></div>
+    <div class="stat">
+      <div class="stat-num" aria-label="Unlimited exports">∞</div>
+      <div class="stat-label">Exports</div>
+    </div>
+    <div class="stat-divider" aria-hidden="true"></div>
+    <div class="stat">
+      <div class="stat-num">Free</div>
+      <div class="stat-label">Forever</div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN CONTENT -->
+<main id="main-content">
+
+<!-- FEATURED -->
+<div class="section-label">
+  <h2>
+    <!-- SVG star replaces emoji (per skill: no-emoji-icons) -->
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#2563EB" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+    Featured
+  </h2>
+</div>
+
+<div class="featured-wrapper" style="margin-bottom: 0;">
+  <!-- div instead of <a> to avoid invalid nested anchors (sub-links live inside) -->
+  <div class="tool-card card-featured" data-delay="0" role="region" aria-label="PDF to MCQ Generator — featured tool">
+    <div class="card-top-shine" aria-hidden="true"></div>
+
+    <!-- Icon links to main tool -->
+    <a href="https://wondermayank.github.io/PDftotext/allinone" target="_blank" rel="noopener noreferrer"
+       class="tool-icon" style="background:linear-gradient(135deg,#2563EB,#06B6D4); text-decoration:none;"
+       aria-label="Open PDF to MCQ Generator">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+        <rect x="4" y="3" width="18" height="23" rx="3" fill="white" fill-opacity="0.92"/>
+        <rect x="7" y="9" width="12" height="1.8" rx="0.9" fill="#2563EB"/>
+        <rect x="7" y="13" width="12" height="1.8" rx="0.9" fill="#2563EB"/>
+        <rect x="7" y="17" width="8"  height="1.8" rx="0.9" fill="#2563EB"/>
+        <rect x="15" y="20" width="17" height="12" rx="3" fill="#06B6D4"/>
+        <circle cx="19.5" cy="26" r="1.8" fill="white"/>
+        <circle cx="24"   cy="26" r="1.8" fill="white"/>
+        <circle cx="28.5" cy="26" r="1.8" fill="white"/>
+      </svg>
+    </a>
+
+    <div class="tool-card-body">
+      <div class="tool-name">PDF to MCQ Generator</div>
+      <div class="tool-desc">Upload any PDF and auto-generate multiple choice questions. Choose from three powerful modes — All-in-One, Normal, or Colourful output.</div>
+      <div class="featured-sub-links">
+        <a href="https://wondermayank.github.io/PDftotext/allinone" target="_blank" rel="noopener noreferrer"
+           class="sub-link tag-blue" style="border-color:#BFDBFE;" aria-label="All-in-One MCQ mode">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="4"/></svg>
+          All-in-One
+        </a>
+        <a href="https://wondermayank.github.io/PDftotext/mcqs2" target="_blank" rel="noopener noreferrer"
+           class="sub-link tag-sky" style="border-color:#BAE6FD;" aria-label="Normal MCQ mode">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="4"/></svg>
+          Normal
+        </a>
+        <a href="https://wondermayank.github.io/PDftotext/mcqs" target="_blank" rel="noopener noreferrer"
+           class="sub-link" style="border-color:#FDE68A;background:#FEF9C3;color:#92400E;" aria-label="Colourful MCQ mode">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="4"/></svg>
+          Colourful
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 7h10M8 3l4 4-4 4"/>
+      </svg>
+    </div>
+  </div>
+</div><!-- /featured-wrapper -->
+
+<!-- ALL TOOLS -->
+<div class="section-label" style="margin-top:32px;">
+  <h2>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    All Tools
+  </h2>
+</div>
+
+<div class="tools-grid" role="list" aria-label="PDF tools">
+
+  <!-- Question Paper -->
+  <a href="https://wondermayank.github.io/PDftotext/qp" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="0" role="listitem"
+     aria-label="Test to Question Paper — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-purple" aria-hidden="true">
+      <!-- Document + lines icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Test → Question Paper</div>
+      <div class="tool-desc">Convert your test content into a formatted, print-ready question paper with sections and marks.</div>
+      <div class="tool-tag tag-purple">Question Paper</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Markdown to PDF -->
+  <a href="https://wondermayank.github.io/PDftotext/md" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="80" role="listitem"
+     aria-label="Text to PDF with Markdown support — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-cyan" aria-hidden="true">
+      <!-- Code/file icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E7490" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 18 22 12 16 6"/>
+        <polyline points="8 6 2 12 8 18"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Text → PDF <span style="font-size:0.75rem;color:#0E7490;font-weight:500;">.md</span></div>
+      <div class="tool-desc">Write in Markdown and export as a beautiful, formatted PDF. Supports headings, bold, lists & more.</div>
+      <div class="tool-tag tag-cyan">Markdown Support</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Study Notes -->
+  <a href="https://wondermayank.github.io/PDftotext/study" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="160" role="listitem"
+     aria-label="Study Notes to PDF — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-green" aria-hidden="true">
+      <!-- Book open icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Study Notes → PDF</div>
+      <div class="tool-desc">Transform raw study notes into beautifully structured PDF documents ready for revision.</div>
+      <div class="tool-tag tag-green">Study Tool</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Certificate Maker -->
+  <a href="https://wondermayank.github.io/PDftotext/certificate" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="240" role="listitem"
+     aria-label="Certificate Maker — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-amber" aria-hidden="true">
+      <!-- Award icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A16207" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="6"/>
+        <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Certificate Maker</div>
+      <div class="tool-desc">Design and export professional certificates of completion, achievement, or participation instantly.</div>
+      <div class="tool-tag tag-amber">Certificate</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Timetable -->
+  <a href="https://wondermayank.github.io/PDftotext/timetable" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="320" role="listitem"
+     aria-label="Timetable to PDF — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-sky" aria-hidden="true">
+      <!-- Calendar icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0369A1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8"  y1="2" x2="8"  y2="6"/>
+        <line x1="3"  y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Timetable → PDF</div>
+      <div class="tool-desc">Create neat, grid-style timetables for class schedules or study plans and export as PDF.</div>
+      <div class="tool-tag tag-sky">Schedule</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Image to PDF -->
+  <a href="https://wondermayank.github.io/PDftotext/image" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="400" role="listitem"
+     aria-label="Image to PDF — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-rose" aria-hidden="true">
+      <!-- Image icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#BE123C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Image → PDF</div>
+      <div class="tool-desc">Merge one or multiple images into a single PDF file. Perfect for scanned documents and photos.</div>
+      <div class="tool-tag tag-rose">Image Converter</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Front Page Maker -->
+  <a href="https://wondermayank.github.io/PDftotext/front" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="480" role="listitem"
+     aria-label="Front Page Maker — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-indigo" aria-hidden="true">
+      <!-- Layout icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <line x1="3"  y1="9"  x2="21" y2="9"/>
+        <line x1="9"  y1="21" x2="9"  y2="9"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Front Page Maker</div>
+      <div class="tool-desc">Design beautiful, professional cover pages for your projects, assignments, or reports in seconds.</div>
+      <div class="tool-tag tag-indigo">Cover Page</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Resume to PDF -->
+  <a href="https://wondermayank.github.io/PDftotext/resume" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="560" role="listitem"
+     aria-label="Resume to PDF builder — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-blue" aria-hidden="true">
+      <!-- User icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Resume → PDF</div>
+      <div class="tool-desc">Build a professional resume from scratch and download it as a pixel-perfect PDF ready to send.</div>
+      <div class="tool-tag tag-blue">Resume Builder</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- Invoice to PDF -->
+  <a href="https://wondermayank.github.io/PDftotext/invoice" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="640" role="listitem"
+     aria-label="Invoice to PDF generator — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-green" aria-hidden="true">
+      <!-- Receipt icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <line x1="10" y1="9"  x2="8" y2="9"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">Invoice → PDF</div>
+      <div class="tool-desc">Generate clean, professional invoices with line items, totals and your branding, exportable instantly.</div>
+      <div class="tool-tag tag-green">Invoice Generator</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+  <!-- To-Do List to PDF -->
+  <a href="https://wondermayank.github.io/PDftotext/todo" target="_blank" rel="noopener noreferrer"
+     class="tool-card" data-delay="720" role="listitem"
+     aria-label="To-Do List to PDF — opens in new tab">
+    <div class="card-top-shine" aria-hidden="true"></div>
+    <div class="tool-icon theme-cyan" aria-hidden="true">
+      <!-- Check-square icon -->
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E7490" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 11 12 14 22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+    </div>
+    <div class="tool-card-body">
+      <div class="tool-name">To-Do List → PDF</div>
+      <div class="tool-desc">Turn your to-do list or task planner into a printable PDF checklist for daily productivity.</div>
+      <div class="tool-tag tag-cyan">Productivity</div>
+    </div>
+    <div class="tool-arrow" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+    </div>
+  </a>
+
+</div><!-- /tools-grid -->
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <p>Built with ♥ by <span>Wondermayank</span> · PDF Maker · All tools free forever</p>
+</footer>
+
+<script>
+  // ── BOOT ANIMATION ──
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const boot = document.getElementById('boot-screen');
+      boot.classList.add('exit');
+      setTimeout(() => {
+        boot.style.display = 'none';
+        // Move focus to skip link / main on load
+        document.querySelector('#main-content') && document.querySelector('#main-content').setAttribute('tabindex','-1');
+      }, 700);
+    }, 2600);
+  });
+
+  // ── SCROLL REVEAL (IntersectionObserver) ──
+  const cards = document.querySelectorAll('.tool-card');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (prefersReducedMotion) {
+    // Skip animation if user prefers reduced motion
+    cards.forEach(c => { c.style.opacity = '1'; c.style.transform = 'none'; });
+  } else {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const delay = parseInt(entry.target.dataset.delay || 0);
+          setTimeout(() => entry.target.classList.add('visible'), delay);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+    cards.forEach(card => observer.observe(card));
+  }
+
+  // ── 3D TILT (desktop only, transform+opacity only per skill) ──
+  if (!prefersReducedMotion && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    cards.forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const rotX = ((y - cy) / cy) * -5;
+        const rotY = ((x - cx) / cx) * 5;
+        card.style.transform = `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-8px) scale(1.01)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = '';
+      });
+    });
+  }
+</script>
+</body>
+</html>
