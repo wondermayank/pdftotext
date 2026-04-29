@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daksh Document Formatter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+  :root {
+    --accent: #2563eb;
+    --bg: #f8f7f4;
+    --panel: #ffffff;
+    --border: #e2e0da;
+    --text: #1a1917;
+    --muted: #6b6a67;
+    --head-color: #c0392b;
+    --subhead-color: #1a6b3a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: #1a1917;
+    color: #fff;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topbar h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    letter-spacing: .03em;
+  }
+  .topbar-controls {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .topbar-controls label { font-size: .8rem; color: #ccc; }
+  .topbar-controls input[type=text] {
+    background: #2e2d2b; border: 1px solid #444; color: #fff;
+    border-radius: 6px; padding: 5px 10px; font-size: .85rem; width: 160px;
+  }
+  .topbar-controls input[type=number] {
+    background: #2e2d2b; border: 1px solid #444; color: #fff;
+    border-radius: 6px; padding: 5px 8px; font-size: .85rem; width: 60px;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; height: calc(100vh - 50px); }
+
+  /* ── LEFT PANEL ── */
+  .sidebar {
+    width: 320px; min-width: 260px; max-width: 360px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+  }
+  .sidebar-tabs button {
+    flex: 1; padding: 10px 4px; font-size: .8rem; font-weight: 600;
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    letter-spacing: .05em; text-transform: uppercase;
+    border-bottom: 2px solid transparent; transition: .2s;
+  }
+  .sidebar-tabs button.active {
+    color: var(--accent); border-bottom-color: var(--accent);
+  }
+  .tab-panel { display: none; flex: 1; overflow-y: auto; padding: 16px; flex-direction: column; gap: 14px; }
+  .tab-panel.active { display: flex; }
+
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-group label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+  .field-group input[type=text],
+  .field-group input[type=number],
+  .field-group select {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: .88rem; background: var(--bg); color: var(--text);
+    width: 100%;
+  }
+  .field-group input:focus, .field-group select:focus { outline: none; border-color: var(--accent); }
+
+  .color-row { display: flex; align-items: center; gap: 10px; }
+  .color-row input[type=color] {
+    width: 36px; height: 32px; border: 1px solid var(--border);
+    border-radius: 6px; cursor: pointer; padding: 2px;
+    background: var(--bg);
+  }
+  .color-row span { font-size: .85rem; flex: 1; }
+  .color-row code { font-size: .78rem; color: var(--muted); font-family: monospace; }
+
+  .margin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .hint-box {
+    background: #f0f4ff; border: 1px solid #c7d7fc; border-radius: 8px;
+    padding: 10px 12px; font-size: .78rem; color: #3444a0; line-height: 1.6;
+  }
+  .hint-box strong { display: block; margin-bottom: 4px; font-size: .82rem; }
+  .hint-box code { background: #dce6ff; border-radius: 3px; padding: 1px 4px; font-size: .77rem; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 16px; border-radius: 8px; font-size: .88rem; font-weight: 600;
+    cursor: pointer; border: none; transition: .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #1d4fd7; }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #ece9e3; }
+  .btn-ai { background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; }
+  .btn-ai:hover { opacity: .9; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+
+  .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ── EDITOR ── */
+  .editor-wrap {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .editor-toolbar {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 8px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .editor-toolbar span { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+  .tb-btn {
+    padding: 4px 10px; font-size: .78rem; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 5px; cursor: pointer;
+    color: var(--text); font-weight: 600; transition: .15s;
+  }
+  .tb-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  textarea#rawInput {
+    flex: 1; resize: none; padding: 20px; font-size: .92rem;
+    font-family: 'Source Sans 3', sans-serif; line-height: 1.7;
+    border: none; outline: none; background: #faf9f7; color: var(--text);
+    border-right: 1px solid var(--border);
+  }
+
+  /* ── PREVIEW ── */
+  .preview-wrap {
+    width: 50%; min-width: 300px; background: #e8e5df;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .preview-header {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 8px 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .preview-header span { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+  .preview-scroller { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+  /* ── PAGE ── */
+  .page {
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,.18);
+    width: 794px;
+    min-height: 1123px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 12pt;
+    line-height: 1.7;
+    color: #1a1917;
+  }
+  .page-header {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1.5px solid #e0ddd8;
+    font-size: 9pt; color: #888; font-weight: 400;
+  }
+  .page-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1.5px solid #e0ddd8;
+    font-size: 9pt; color: #888;
+  }
+  .page-content {
+    flex: 1;
+  }
+  .doc-title-area {
+    border-bottom: 2px solid #e0ddd8;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+  }
+  .doc-title-area h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18pt;
+    color: #1a1917;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .doc-title-area .doc-meta { font-size: 9pt; color: #888; }
+
+  .doc-head { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 14pt; margin: 16px 0 6px; }
+  .doc-subhead { font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 11pt; margin: 10px 0 4px; }
+  .doc-body { margin-bottom: 6px; }
+
+  /* AI badge */
+  .ai-badge {
+    display: inline-block; font-size: 7pt; background: linear-gradient(135deg,#7c3aed,#2563eb);
+    color: #fff; border-radius: 3px; padding: 1px 5px; margin-right: 6px; vertical-align: middle;
+    font-weight: 700; letter-spacing: .04em;
+  }
+  .ai-generated { background: #f5f3ff; border-left: 3px solid #7c3aed; padding: 8px 12px; border-radius: 0 6px 6px 0; margin: 6px 0; }
+
+  /* Loading */
+  .ai-loading {
+    display: flex; align-items: center; gap: 8px;
+    color: #7c3aed; font-size: .88rem; padding: 8px 0;
+  }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid #c4b5fd;
+    border-top-color: #7c3aed; border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Status */
+  #statusBar {
+    background: var(--panel); border-top: 1px solid var(--border);
+    padding: 5px 16px; font-size: .78rem; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  #statusBar .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+
+  /* Print */
+  @media print {
+    body > * { display: none !important; }
+    .print-area { display: block !important; position: fixed; top: 0; left: 0; width: 100%; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+  /* AI Panel extras */
+  .ai-prompt-row { display: flex; gap: 8px; align-items: flex-start; }
+  .ai-prompt-row textarea {
+    flex: 1; resize: vertical; padding: 8px 10px; font-size: .85rem;
+    border: 1px solid var(--border); border-radius: 6px; font-family: inherit;
+    background: var(--bg); min-height: 70px;
+  }
+  .ai-prompt-row textarea:focus { outline: none; border-color: #7c3aed; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <h1>📄 Daksh Document Formatter</h1>
+  <div class="topbar-controls">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <label>Doc Title</label>
+      <input type="text" id="docTitle" value="Daksh Current Affairs — March 2025" />
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <label>Name (footer left)</label>
+      <input type="text" id="footerName" value="Daksh IAS" />
+    </div>
+    <button class="btn btn-primary" onclick="renderPreview()">🔄 Render</button>
+    <button class="btn btn-secondary" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="active" onclick="switchTab('format',this)">Format</button>
+      <button onclick="switchTab('margins',this)">Margins</button>
+      <button onclick="switchTab('ai',this)">AI ✨</button>
+      <button onclick="switchTab('guide',this)">Guide</button>
+    </div>
+
+    <!-- FORMAT TAB -->
+    <div class="tab-panel active" id="tab-format">
+      <div class="field-group">
+        <label>Heading Color</label>
+        <div class="color-row">
+          <input type="color" id="headColor" value="#c0392b" oninput="applyColors()">
+          <span>Chapter / {Head}</span>
+          <code id="headHex">#c0392b</code>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Sub-Heading Color</label>
+        <div class="color-row">
+          <input type="color" id="subheadColor" value="#1a6b3a" oninput="applyColors()">
+          <span>Section / {Sub-Head}</span>
+          <code id="subheadHex">#1a6b3a</code>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-group">
+        <label>Body Font Size</label>
+        <input type="number" id="fontSize" value="12" min="8" max="18" step=".5" onchange="renderPreview()"> pt
+      </div>
+      <div class="field-group">
+        <label>Line Height</label>
+        <input type="number" id="lineHeight" value="1.7" min="1.2" max="2.5" step=".1" onchange="renderPreview()">
+      </div>
+      <div class="field-group">
+        <label>Page Size</label>
+        <select id="pageSize" onchange="renderPreview()">
+          <option value="a4">A4 (210 × 297 mm)</option>
+          <option value="letter">Letter (8.5 × 11 in)</option>
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div class="action-row">
+        <button class="btn btn-primary" style="flex:1" onclick="renderPreview()">🔄 Render Preview</button>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-secondary" style="flex:1" onclick="pasteDocText()">📋 Paste Sample</button>
+        <button class="btn btn-danger" style="flex:1" onclick="clearEditor()">🗑 Clear</button>
+      </div>
+    </div>
+
+    <!-- MARGINS TAB -->
+    <div class="tab-panel" id="tab-margins">
+      <div class="field-group">
+        <label>Margins (mm)</label>
+        <div class="margin-grid">
+          <div class="field-group"><label>Top</label><input type="number" id="mTop" value="18" min="5" max="60" onchange="renderPreview()"></div>
+          <div class="field-group"><label>Bottom</label><input type="number" id="mBottom" value="18" min="5" max="60" onchange="renderPreview()"></div>
+          <div class="field-group"><label>Left</label><input type="number" id="mLeft" value="22" min="5" max="60" onchange="renderPreview()"></div>
+          <div class="field-group"><label>Right</label><input type="number" id="mRight" value="20" min="5" max="60" onchange="renderPreview()"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-group">
+        <label>Header Height (px)</label>
+        <input type="number" id="headerH" value="28" min="16" max="60" onchange="renderPreview()">
+      </div>
+      <div class="field-group">
+        <label>Footer Height (px)</label>
+        <input type="number" id="footerH" value="24" min="16" max="60" onchange="renderPreview()">
+      </div>
+      <div class="action-row" style="margin-top:8px;">
+        <button class="btn btn-primary" style="flex:1" onclick="renderPreview()">Apply</button>
+      </div>
+    </div>
+
+    <!-- AI TAB -->
+    <div class="tab-panel" id="tab-ai">
+      <div class="hint-box" style="background:#faf5ff;border-color:#d8b4fe;color:#5b21b6;">
+        <strong>✨ AI Text Enhancement</strong>
+        Select text in the editor, then choose an action to have Claude rewrite or summarize it. The result is inserted at cursor.
+      </div>
+      <div class="field-group">
+        <label>AI Instruction</label>
+        <div class="ai-prompt-row">
+          <textarea id="aiInstruction" placeholder="e.g. Summarize this in 2 sentences&#10;e.g. Make this more formal&#10;e.g. Expand with more detail"></textarea>
+        </div>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-ai" style="flex:1" onclick="runAI('custom')">✨ Run AI</button>
+      </div>
+      <div class="divider"></div>
+      <div class="field-group"><label>Quick Actions</label></div>
+      <div class="action-row">
+        <button class="btn btn-secondary" style="flex:1;font-size:.78rem" onclick="runAI('summarize')">📝 Summarize</button>
+        <button class="btn btn-secondary" style="flex:1;font-size:.78rem" onclick="runAI('expand')">📖 Expand</button>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-secondary" style="flex:1;font-size:.78rem" onclick="runAI('formal')">🎓 Formalize</button>
+        <button class="btn btn-secondary" style="flex:1;font-size:.78rem" onclick="runAI('simplify')">✂️ Simplify</button>
+      </div>
+      <div id="aiStatus"></div>
+      <div class="hint-box" style="margin-top:4px;">
+        <strong>💡 Tip</strong>
+        AI output is marked with a purple <code>AI</code> badge and styled differently in the preview.
+      </div>
+    </div>
+
+    <!-- GUIDE TAB -->
+    <div class="tab-panel" id="tab-guide">
+      <div class="hint-box">
+        <strong>📘 Formatting Syntax</strong>
+        <br>
+        <code>{Head}</code> → Chapter Heading (uses heading color)<br><br>
+        <code>{Sub-Head}</code> → Sub-heading (uses subhead color)<br><br>
+        <code>^^^</code> → Page Break (starts new page)<br><br>
+        Normal text → body paragraph<br><br>
+        <strong>Blank line</strong> → paragraph spacing<br><br>
+        <code>**text**</code> and <code>## text</code> are automatically cleaned and converted.
+      </div>
+      <div class="hint-box" style="margin-top:8px;background:#f0fdf4;border-color:#bbf7d0;color:#14532d;">
+        <strong>📄 PDF Export</strong>
+        Click <b>Print / Save PDF</b> in the top bar, then choose <b>"Save as PDF"</b> in the print dialog. The pages render with proper margins, headers, and footers.
+      </div>
+      <div class="hint-box" style="margin-top:8px;background:#fff7ed;border-color:#fed7aa;color:#7c2d12;">
+        <strong>⚡ Quick Tips</strong>
+        • Use <code>^^^</code> on its own line to break to a new page.<br>
+        • Title bar name appears bottom-left on every page.<br>
+        • Page numbers appear bottom-right automatically.<br>
+        • Color pickers update preview in real-time.
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITOR + PREVIEW -->
+  <div class="editor-wrap">
+    <div class="editor-toolbar">
+      <span>Editor</span>
+      <button class="tb-btn" onclick="insertTag('{Head}')">H</button>
+      <button class="tb-btn" onclick="insertTag('{Sub-Head}')">H2</button>
+      <button class="tb-btn" onclick="insertTag('^^^')">⏎ Page Break</button>
+      <div style="flex:1"></div>
+      <span id="wordCount" style="font-size:.75rem;color:var(--muted);">0 words</span>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden;">
+      <textarea id="rawInput" spellcheck="true" placeholder="Paste or type your document here...
+
+Use {Head} for chapter headings
+Use {Sub-Head} for sub-headings
+Use ^^^ on its own line for a page break
+
+Example:
+{Head}Chapter 1: National Affairs
+{Sub-Head}Renewable Energy
+India achieved its 100 GW solar energy capacity target...
+
+^^^
+
+{Head}Chapter 2: International Affairs
+..." oninput="updateWordCount()"></textarea>
+
+      <!-- PREVIEW -->
+      <div class="preview-wrap">
+        <div class="preview-header">
+          <span>Live Preview</span>
+          <span id="pageCount" style="font-size:.75rem;">— pages</span>
+        </div>
+        <div class="preview-scroller" id="previewScroller"></div>
+      </div>
+    </div>
+    <div id="statusBar"><div class="dot"></div><span id="statusMsg">Ready — paste text and click Render</span></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let headColor = '#c0392b';
+let subheadColor = '#1a6b3a';
+
+function mm2px(mm) { return mm * 3.7795; }
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-tabs button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── COLORS ──
+function applyColors() {
+  headColor = document.getElementById('headColor').value;
+  subheadColor = document.getElementById('subheadColor').value;
+  document.getElementById('headHex').textContent = headColor;
+  document.getElementById('subheadHex').textContent = subheadColor;
+  renderPreview();
+}
+
+// ── WORD COUNT ──
+function updateWordCount() {
+  const txt = document.getElementById('rawInput').value.trim();
+  const wc = txt ? txt.split(/\s+/).length : 0;
+  document.getElementById('wordCount').textContent = wc.toLocaleString() + ' words';
+}
+
+// ── INSERT TAG ──
+function insertTag(tag) {
+  const ta = document.getElementById('rawInput');
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const val = ta.value;
+  const before = val.substring(0, start);
+  const after = val.substring(end);
+  const insert = (before.endsWith('\n') || before === '') ? tag + '\n' : '\n' + tag + '\n';
+  ta.value = before + insert + after;
+  ta.selectionStart = ta.selectionEnd = start + insert.length;
+  ta.focus();
+  updateWordCount();
+}
+
+// ── CLEAR ──
+function clearEditor() {
+  if (!confirm('Clear all text?')) return;
+  document.getElementById('rawInput').value = '';
+  document.getElementById('previewScroller').innerHTML = '';
+  updateWordCount();
+}
+
+// ── PASTE SAMPLE ──
+function pasteDocText() {
+  const sample = `{Head}Chapter 1: National Affairs
+{Sub-Head}National Tribal Festival
+President Droupadi Murmu inaugurated 'Aadi Mahotsav' in New Delhi to promote tribal heritage and connect artisans with markets.
+
+{Sub-Head}Renewable Energy
+India achieved its 100 GW solar energy capacity target, driven by solar parks and rooftop projects. The IEA projects India's renewable energy share to reach 27% by 2027.
+
+{Sub-Head}Aviation Milestones
+India became the second country globally to introduce digital pilot licenses via the Electronic Personnel License (EPL). The 15th edition of Aero India took place in Bengaluru.
+
+^^^
+
+{Head}Chapter 2: International Affairs
+{Sub-Head}Brazil Joins OPEC
+Brazil's government approved joining the OPEC alliance, aligning oil production with its transition to green energy.
+
+{Sub-Head}Panama Exits BRI
+Panama officially withdrew from China's Belt and Road Initiative, marking a major shift influenced by US pressure regarding the Panama Canal.
+
+^^^
+
+{Head}Chapter 3: Economic Affairs
+{Sub-Head}Union Budget 2025-26
+Presented by Finance Minister Nirmala Sitharaman, the budget featured a total expenditure estimate of ₹50.65 lakh crore and a fiscal deficit target of 4.4% of GDP.
+
+{Sub-Head}RBI and Financial Initiatives
+The RBI cut the repo rate by 25 basis points to 6.25%. The central bank also lifted restrictions on Kotak Mahindra Bank and launched the 'RBIDATA' app for macroeconomic statistics.`;
+  document.getElementById('rawInput').value = sample;
+  updateWordCount();
+  renderPreview();
+}
+
+// ── CLEAN TEXT ──
+function cleanText(raw) {
+  // Remove ** and ## markers, keeping content
+  let t = raw.replace(/\*\*(.*?)\*\*/g, '$1');
+  t = t.replace(/^##\s+/gm, '');
+  t = t.replace(/^#\s+/gm, '');
+  return t;
+}
+
+// ── PARSE INTO SEGMENTS ──
+// Returns array of page-arrays; each page is array of {type, text}
+function parseDocument(raw) {
+  const cleaned = cleanText(raw);
+  const lines = cleaned.split('\n');
+  const pages = [];
+  let currentPage = [];
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed === '^^^') {
+      pages.push(currentPage);
+      currentPage = [];
+      continue;
+    }
+
+    const headMatch = trimmed.match(/^\{Head\}(.*)$/);
+    const subheadMatch = trimmed.match(/^\{Sub-Head\}(.*)$/);
+
+    if (headMatch) {
+      currentPage.push({ type: 'head', text: headMatch[1].trim() });
+    } else if (subheadMatch) {
+      currentPage.push({ type: 'subhead', text: subheadMatch[1].trim() });
+    } else if (trimmed === '') {
+      currentPage.push({ type: 'spacer' });
+    } else {
+      // Bullet point detection
+      if (trimmed.startsWith('*   ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+        const txt = trimmed.replace(/^[\*\-•]\s+/, '• ');
+        currentPage.push({ type: 'bullet', text: txt });
+      } else {
+        currentPage.push({ type: 'body', text: trimmed });
+      }
+    }
+  }
+  if (currentPage.length > 0) pages.push(currentPage);
+  return pages;
+}
+
+// ── RENDER PREVIEW ──
+function renderPreview() {
+  const raw = document.getElementById('rawInput').value;
+  const title = document.getElementById('docTitle').value || 'Document';
+  const footerName = document.getElementById('footerName').value || '';
+  const fontSize = parseFloat(document.getElementById('fontSize').value) || 12;
+  const lineH = parseFloat(document.getElementById('lineHeight').value) || 1.7;
+  const mTop = parseInt(document.getElementById('mTop').value) || 18;
+  const mBottom = parseInt(document.getElementById('mBottom').value) || 18;
+  const mLeft = parseInt(document.getElementById('mLeft').value) || 22;
+  const mRight = parseInt(document.getElementById('mRight').value) || 20;
+  const headerH = parseInt(document.getElementById('headerH').value) || 28;
+  const footerH = parseInt(document.getElementById('footerH').value) || 24;
+  const pageSize = document.getElementById('pageSize').value;
+
+  const W = pageSize === 'letter' ? 816 : 794;
+  const H = pageSize === 'letter' ? 1056 : 1123;
+
+  const pages = parseDocument(raw || '');
+  const scroller = document.getElementById('previewScroller');
+  scroller.innerHTML = '';
+
+  let pageNum = 1;
+  const totalPages = pages.length || 1;
+
+  const renderPage = (segments, pNum) => {
+    const pageEl = document.createElement('div');
+    pageEl.className = 'page';
+    pageEl.style.cssText = `
+      width:${W}px; min-height:${H}px; font-size:${fontSize}pt; line-height:${lineH};
+    `;
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'page-header';
+    hdr.style.cssText = `height:${headerH}px; padding:0 ${mm2px(mRight)}px 0 ${mm2px(mLeft)}px;`;
+    hdr.innerHTML = `<span style="font-style:italic">${title}</span><span></span>`;
+    pageEl.appendChild(hdr);
+
+    // Footer
+    const ftr = document.createElement('div');
+    ftr.className = 'page-footer';
+    ftr.style.cssText = `height:${footerH}px; padding:0 ${mm2px(mRight)}px 0 ${mm2px(mLeft)}px;`;
+    ftr.innerHTML = `<span>${footerName}</span><span>Page ${pNum} of ${totalPages}</span>`;
+    pageEl.appendChild(ftr);
+
+    // Content area
+    const content = document.createElement('div');
+    content.className = 'page-content';
+    content.style.cssText = `
+      padding-top:${headerH + mm2px(mTop)}px;
+      padding-bottom:${footerH + mm2px(mBottom)}px;
+      padding-left:${mm2px(mLeft)}px;
+      padding-right:${mm2px(mRight)}px;
+    `;
+
+    if (pNum === 1 && title) {
+      const titleArea = document.createElement('div');
+      titleArea.className = 'doc-title-area';
+      titleArea.innerHTML = `<h2>${title}</h2><div class="doc-meta">Total Pages: ${totalPages}</div>`;
+      content.appendChild(titleArea);
+    }
+
+    for (const seg of segments) {
+      if (seg.type === 'head') {
+        const el = document.createElement('div');
+        el.className = 'doc-head';
+        el.style.color = headColor;
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'subhead') {
+        const el = document.createElement('div');
+        el.className = 'doc-subhead';
+        el.style.color = subheadColor;
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'body') {
+        const el = document.createElement('p');
+        el.className = 'doc-body';
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'bullet') {
+        const el = document.createElement('p');
+        el.className = 'doc-body';
+        el.style.paddingLeft = '16px';
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'ai') {
+        const el = document.createElement('div');
+        el.className = 'ai-generated';
+        el.innerHTML = `<span class="ai-badge">AI</span>${seg.text}`;
+        content.appendChild(el);
+      } else if (seg.type === 'spacer') {
+        const el = document.createElement('div');
+        el.style.height = '8px';
+        content.appendChild(el);
+      }
+    }
+
+    pageEl.appendChild(content);
+    return pageEl;
+  };
+
+  if (pages.length === 0) {
+    scroller.innerHTML = `<div style="color:var(--muted);font-size:.9rem;text-align:center;padding:40px;">Paste text in the editor and click Render</div>`;
+    document.getElementById('pageCount').textContent = '0 pages';
+    return;
+  }
+
+  for (let i = 0; i < pages.length; i++) {
+    scroller.appendChild(renderPage(pages[i], i + 1));
+  }
+
+  document.getElementById('pageCount').textContent = pages.length + ' page' + (pages.length !== 1 ? 's' : '');
+  setStatus('Preview updated — ' + pages.length + ' page(s) rendered', '#22c55e');
+}
+
+// ── STATUS ──
+function setStatus(msg, color) {
+  document.getElementById('statusMsg').textContent = msg;
+  document.querySelector('#statusBar .dot').style.background = color || '#22c55e';
+}
+
+// ── AI ACTIONS ──
+async function runAI(action) {
+  const ta = document.getElementById('rawInput');
+  const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd).trim();
+  const text = sel || ta.value.trim();
+
+  if (!text) {
+    alert('Please type or select some text first.');
+    return;
+  }
+
+  const customInstruction = document.getElementById('aiInstruction').value.trim();
+
+  const prompts = {
+    summarize: `Summarize the following text concisely in 2-3 sentences. Return only the summary, no preamble.`,
+    expand: `Expand the following text with more detail and context. Keep the same formatting style. Return only the expanded text.`,
+    formal: `Rewrite the following text in a formal, academic tone suitable for a government exam study material. Return only the rewritten text.`,
+    simplify: `Simplify the following text for easier understanding. Use simpler words and shorter sentences. Return only the simplified text.`,
+    custom: customInstruction || 'Improve the following text:'
+  };
+
+  const instruction = prompts[action];
+
+  const aiStatus = document.getElementById('aiStatus');
+  aiStatus.innerHTML = `<div class="ai-loading"><div class="spinner"></div>AI is processing...</div>`;
+  setStatus('Running AI...', '#7c3aed');
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [
+          {
+            role: "user",
+            content: `${instruction}\n\n---\n${text}`
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    const result = data.content?.[0]?.text || '';
+
+    if (!result) throw new Error('No response');
+
+    // Insert into editor
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const val = ta.value;
+    const aiTag = `\n[AI_RESULT]\n${result}\n[/AI_RESULT]\n`;
+
+    if (sel) {
+      ta.value = val.substring(0, start) + aiTag + val.substring(end);
+    } else {
+      ta.value = val + aiTag;
+    }
+
+    updateWordCount();
+    renderPreview();
+    aiStatus.innerHTML = `<div style="color:#22c55e;font-size:.82rem;padding:6px 0;">✅ AI result inserted below selection</div>`;
+    setStatus('AI text inserted successfully', '#22c55e');
+
+  } catch (err) {
+    aiStatus.innerHTML = `<div style="color:#dc2626;font-size:.82rem;padding:6px 0;">❌ Error: ${err.message}</div>`;
+    setStatus('AI error', '#dc2626');
+  }
+}
+
+// Override parser to handle AI tags
+const origParse = parseDocument;
+window.parseDocumentWithAI = function(raw) {
+  // Replace [AI_RESULT]...[/AI_RESULT] blocks
+  const tagged = raw.replace(/\[AI_RESULT\]\n?([\s\S]*?)\n?\[\/AI_RESULT\]/g, (_, content) => {
+    return `{AI_BLOCK}${content.replace(/\n/g, ' ').trim()}`;
+  });
+
+  const cleaned = cleanText(tagged);
+  const lines = cleaned.split('\n');
+  const pages = [];
+  let currentPage = [];
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === '^^^') { pages.push(currentPage); currentPage = []; continue; }
+    const headMatch = trimmed.match(/^\{Head\}(.*)$/);
+    const subheadMatch = trimmed.match(/^\{Sub-Head\}(.*)$/);
+    const aiMatch = trimmed.match(/^\{AI_BLOCK\}(.*)$/);
+
+    if (headMatch) currentPage.push({ type: 'head', text: headMatch[1].trim() });
+    else if (subheadMatch) currentPage.push({ type: 'subhead', text: subheadMatch[1].trim() });
+    else if (aiMatch) currentPage.push({ type: 'ai', text: aiMatch[1].trim() });
+    else if (trimmed === '') currentPage.push({ type: 'spacer' });
+    else if (trimmed.startsWith('*   ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+      currentPage.push({ type: 'bullet', text: trimmed.replace(/^[\*\-•]\s+/, '• ') });
+    } else currentPage.push({ type: 'body', text: trimmed });
+  }
+  if (currentPage.length > 0) pages.push(currentPage);
+  return pages;
+};
+
+// Patch renderPreview to use AI-aware parser
+const _origRender = renderPreview;
+window.renderPreview = function() {
+  const raw = document.getElementById('rawInput').value;
+  const title = document.getElementById('docTitle').value || 'Document';
+  const footerName = document.getElementById('footerName').value || '';
+  const fontSize = parseFloat(document.getElementById('fontSize').value) || 12;
+  const lineH = parseFloat(document.getElementById('lineHeight').value) || 1.7;
+  const mTop = parseInt(document.getElementById('mTop').value) || 18;
+  const mBottom = parseInt(document.getElementById('mBottom').value) || 18;
+  const mLeft = parseInt(document.getElementById('mLeft').value) || 22;
+  const mRight = parseInt(document.getElementById('mRight').value) || 20;
+  const headerH = parseInt(document.getElementById('headerH').value) || 28;
+  const footerH = parseInt(document.getElementById('footerH').value) || 24;
+  const pageSize = document.getElementById('pageSize').value;
+
+  const W = pageSize === 'letter' ? 816 : 794;
+  const H = pageSize === 'letter' ? 1056 : 1123;
+
+  const pages = window.parseDocumentWithAI(raw || '');
+  const scroller = document.getElementById('previewScroller');
+  scroller.innerHTML = '';
+  const totalPages = pages.length || 1;
+
+  if (pages.length === 0) {
+    scroller.innerHTML = `<div style="color:var(--muted);font-size:.9rem;text-align:center;padding:40px;">Paste text and click Render</div>`;
+    document.getElementById('pageCount').textContent = '0 pages';
+    return;
+  }
+
+  const renderPage = (segments, pNum) => {
+    const pageEl = document.createElement('div');
+    pageEl.className = 'page';
+    pageEl.style.cssText = `width:${W}px; min-height:${H}px; font-size:${fontSize}pt; line-height:${lineH};`;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'page-header';
+    hdr.style.cssText = `height:${headerH}px; padding:0 ${mm2px(mRight)}px 0 ${mm2px(mLeft)}px;`;
+    hdr.innerHTML = `<span style="font-style:italic">${title}</span><span></span>`;
+    pageEl.appendChild(hdr);
+
+    const ftr = document.createElement('div');
+    ftr.className = 'page-footer';
+    ftr.style.cssText = `height:${footerH}px; padding:0 ${mm2px(mRight)}px 0 ${mm2px(mLeft)}px;`;
+    ftr.innerHTML = `<span>${footerName}</span><span>Page ${pNum} of ${totalPages}</span>`;
+    pageEl.appendChild(ftr);
+
+    const content = document.createElement('div');
+    content.className = 'page-content';
+    content.style.cssText = `
+      padding-top:${headerH + mm2px(mTop)}px;
+      padding-bottom:${footerH + mm2px(mBottom)}px;
+      padding-left:${mm2px(mLeft)}px;
+      padding-right:${mm2px(mRight)}px;
+    `;
+
+    if (pNum === 1 && title) {
+      const titleArea = document.createElement('div');
+      titleArea.className = 'doc-title-area';
+      titleArea.innerHTML = `<h2>${title}</h2><div class="doc-meta">Total Pages: ${totalPages}</div>`;
+      content.appendChild(titleArea);
+    }
+
+    for (const seg of segments) {
+      if (seg.type === 'head') {
+        const el = document.createElement('div');
+        el.className = 'doc-head';
+        el.style.color = headColor;
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'subhead') {
+        const el = document.createElement('div');
+        el.className = 'doc-subhead';
+        el.style.color = subheadColor;
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'body') {
+        const el = document.createElement('p');
+        el.className = 'doc-body';
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'bullet') {
+        const el = document.createElement('p');
+        el.className = 'doc-body';
+        el.style.paddingLeft = '16px';
+        el.textContent = seg.text;
+        content.appendChild(el);
+      } else if (seg.type === 'ai') {
+        const el = document.createElement('div');
+        el.className = 'ai-generated';
+        el.innerHTML = `<span class="ai-badge">AI</span>${seg.text}`;
+        content.appendChild(el);
+      } else if (seg.type === 'spacer') {
+        const el = document.createElement('div'); el.style.height = '8px';
+        content.appendChild(el);
+      }
+    }
+
+    pageEl.appendChild(content);
+    return pageEl;
+  };
+
+  for (let i = 0; i < pages.length; i++) {
+    scroller.appendChild(renderPage(pages[i], i + 1));
+  }
+
+  document.getElementById('pageCount').textContent = pages.length + ' page(s)';
+  setStatus('Preview updated — ' + pages.length + ' page(s)', '#22c55e');
+};
+
+// ── PRINT STYLES ──
+const printStyle = document.createElement('style');
+printStyle.textContent = `
+  @media print {
+    @page { margin: 0; size: A4; }
+    body > .topbar, body > .app > .sidebar, body > .app > .editor-wrap > textarea,
+    body > .app > .editor-wrap > .editor-toolbar,
+    body > .app > .editor-wrap > #statusBar { display: none !important; }
+    body { background: #fff !important; }
+    .app { height: auto !important; }
+    .editor-wrap { width: 100% !important; flex-direction: column; }
+    .preview-wrap { width: 100% !important; }
+    .preview-header { display: none !important; }
+    .preview-scroller { padding: 0 !important; gap: 0 !important; overflow: visible !important; }
+    .page { box-shadow: none !important; margin: 0 !important; page-break-after: always; }
+  }
+`;
+document.head.appendChild(printStyle);
+
+// ── INIT ──
+pasteDocText();
+</script>
+</body>
+</html>
